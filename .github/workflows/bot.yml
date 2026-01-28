@@ -1,0 +1,43 @@
+name: Roblox Link Forwarder
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Roblox links
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          python3 -c "
+import requests, re, os
+
+token = os.environ['TOKEN']
+source = '1378920852761870436'
+target = '1465273656631365788'
+
+headers = {'Authorization': token}
+
+# 메시지 가져오기
+url = f'https://discord.com/api/v9/channels/{source}/messages?limit=5'
+r = requests.get(url, headers=headers, timeout=10)
+
+if r.status_code == 200:
+    for msg in r.json():
+        text = msg.get('content', '')
+        if 'roblox.com' in text.lower():
+            import re
+            link = re.search(r'https?://[^\s]+roblox\.com/[^\s]+', text)
+            if link:
+                # 전송
+                send_url = f'https://discord.com/api/v9/channels/{target}/messages'
+                data = {'content': link.group(0), 'tts': False}
+                requests.post(send_url, headers=headers, json=data, timeout=10)
+                print('Sent:', link.group(0)[:50])
+                break
+print('Done')
+"
